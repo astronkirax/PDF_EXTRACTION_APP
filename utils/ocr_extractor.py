@@ -1,4 +1,3 @@
-# utils/ocr_extractor.py
 import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
@@ -6,11 +5,10 @@ import io
 from typing import Dict, List, Union
 from PIL import Image, ImageOps, UnidentifiedImageError
 import pytesseract
-import fitz  # PyMuPDF
+import fitz
 import os
 
 def _preprocess_image(pil_img: Image.Image) -> Image.Image:
-    """Convert to grayscale, autocontrast, resize very large images for speed."""
     img = pil_img.convert("L")
     img = ImageOps.autocontrast(img)
     max_dim = max(img.size)
@@ -32,24 +30,6 @@ def _read_bytes(file: Union[str, bytes, io.BytesIO]):
     return file.read()
 
 def extract_text_from_images(file, save_debug_pages: str = None) -> Dict:
-    """
-    Extract text via OCR from a PDF.
-    Steps:
-      1. Try to extract embedded image objects and OCR them.
-      2. If no embedded images or you still want OCR of whole pages, render each page to an image (pixmap) and OCR that.
-
-    Args:
-      file: bytes / path / file-like
-      save_debug_pages: optional folder path to save rendered page images for debugging (helps see what OCR sees)
-
-    Returns:
-      dict with keys:
-        - pages: list of pages with 'images' list (index, ocr, method)
-        - image_count: total images OCRed
-        - content: combined OCR text
-        - source: "OCR Text from Images"
-        - debug: optional info
-    """
     try:
         data = _read_bytes(file)
     except Exception as e:
@@ -67,14 +47,12 @@ def extract_text_from_images(file, save_debug_pages: str = None) -> Dict:
     ocr_texts: List[str] = []
     total_images = 0
 
-    # optional debug dir
     if save_debug_pages:
         os.makedirs(save_debug_pages, exist_ok=True)
 
     for pno in range(len(pdf)):
         page = pdf.load_page(pno)
         page_images = []
-        # 1) Try embedded images (XObjects)
         try:
             images = page.get_images(full=True)
         except Exception:
@@ -103,10 +81,8 @@ def extract_text_from_images(file, save_debug_pages: str = None) -> Dict:
                 ocr_texts.append(f"--- OCR Page {pno+1}, Image {img_index} (embedded) ---\n{ocr_result}\n")
                 total_images += 1
         else:
-            # 2) Fall back: render full page to an image and OCR that
             try:
-                # render at 150-200 dpi-ish (scale factor)
-                zoom = 2  # 2 means ~150-200 dpi depending on source
+                zoom = 2
                 mat = fitz.Matrix(zoom, zoom)
                 pix = page.get_pixmap(matrix=mat, alpha=False)
                 img_bytes = pix.tobytes("png")
