@@ -1,7 +1,7 @@
-pytesseract
-pdfplumber
-pypdf2
-pillow
-opencv-python
-docling
 streamlit
+pdfplumber
+PyMuPDF
+pytesseract
+Pillow
+opencv-python-headless
+tqdm
